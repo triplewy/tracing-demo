@@ -1,0 +1,59 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: service3
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: service3
+  template:
+    metadata:
+      labels:
+        app: service3
+    spec:
+      containers:
+        - name: server
+          image: alpine:grpc
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 8080
+          env:
+            - name: PORT
+              value: "8080"
+          resources:
+            requests:
+              cpu: 50m
+              memory: 64Mi
+            limits:
+              cpu: 100m
+              memory: 128Mi
+          readinessProbe:
+            initialDelaySeconds: 20
+            exec:
+              command: ["/bin/grpc_health_probe", "-addr=:8080"]
+          livenessProbe:
+            initialDelaySeconds: 20
+            exec:
+              command: ["/bin/grpc_health_probe", "-addr=:8080"]
+          command: ["/src/sinkservice/sinkservice"]
+          volumeMounts:
+            - mountPath: /src
+              name: src
+      volumes:
+        - name: src
+          hostPath:
+            path: /Users/alexyu/go/src/github.com/triplewy/tracing-demo/src
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: service3
+spec:
+  type: ClusterIP
+  selector:
+    app: service3
+  ports:
+    - name: grpc
+      port: 8080
+      targetPort: 8080
